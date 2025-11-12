@@ -15,13 +15,16 @@ from dataclasses import dataclass, asdict
 import re
 import sys
 import time
+import logging
 
 
 @dataclass
 class AgentConfig:
     """Configuration for the coding agent"""
-    lm_studio_url: str = "http://localhost:1234/v1"
+    provider: str = "lm_studio"  # "lm_studio" or "ollama"
+    api_url: str = "http://localhost:1234/v1"
     model_name: str = "qwen2.5-coder-1.5b-instruct"
+    api_key: Optional[str] = None  # For Ollama cloud or other authenticated services
     temperature: float = 0.7
     max_tokens: int = 4096
     stream: bool = True  # Enable streaming by default
@@ -54,9 +57,25 @@ class StreamingAgent:
                     with open(config_file, 'r') as f:
                         config_data = json.load(f)
                         file_ops = config_data.get('file_operations', {})
+
+                        # Determine provider and get appropriate config
+                        provider = config_data.get('provider', 'lm_studio')
+
+                        if provider == 'ollama':
+                            provider_config = config_data.get('ollama', {})
+                        else:
+                            provider_config = config_data.get('lm_studio', {})
+
+                        # Load API key from secrets file if not in config
+                        api_key = provider_config.get('api_key')
+                        if not api_key or api_key == "YOUR_API_KEY_HERE":
+                            api_key = self._load_api_key_from_secrets(provider)
+
                         config = AgentConfig(
-                            lm_studio_url=config_data.get('lm_studio', {}).get('url', 'http://localhost:1234/v1'),
-                            model_name=config_data.get('lm_studio', {}).get('model', 'qwen2.5-coder-1.5b-instruct'),
+                            provider=provider,
+                            api_url=provider_config.get('url', 'http://localhost:1234/v1'),
+                            model_name=provider_config.get('model', 'qwen2.5-coder-1.5b-instruct'),
+                            api_key=api_key,
                             temperature=config_data.get('agent_settings', {}).get('temperature', 0.7),
                             max_tokens=config_data.get('agent_settings', {}).get('max_tokens', 4096),
                             stream=config_data.get('agent_settings', {}).get('stream', True),
@@ -82,7 +101,35 @@ class StreamingAgent:
         self.workspace.mkdir(exist_ok=True)
         self.token_count = 0
         self.response_start_time = None
-        
+
+        # Configure logging
+        self.logger = logging.getLogger('StreamingAgent')
+        self.logger.setLevel(logging.DEBUG)
+
+        # File handler for debug logs
+        log_file = Path('agent_debug.log')
+        file_handler = logging.FileHandler(log_file, mode='a')
+        file_handler.setLevel(logging.DEBUG)
+
+        # Console handler for errors only
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.ERROR)
+
+        # Formatter
+        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+        file_handler.setFormatter(formatter)
+        console_handler.setFormatter(formatter)
+
+        # Add handlers if not already added
+        if not self.logger.handlers:
+            self.logger.addHandler(file_handler)
+            self.logger.addHandler(console_handler)
+
+        self.logger.info("=" * 60)
+        self.logger.info(f"StreamingAgent initialized - Provider: {self.config.provider}, Model: {self.config.model_name}")
+        self.logger.info(f"API URL: {self.config.api_url}")
+        self.logger.info(f"API Key configured: {'Yes' if self.config.api_key else 'No'}")
+
         # Load system prompt
         self.system_prompt = self._load_system_prompt()
         
@@ -92,13 +139,28 @@ class StreamingAgent:
             "content": self.system_prompt
         })
     
+    def _load_api_key_from_secrets(self, provider: str) -> Optional[str]:
+        """Load API key from secrets.json file"""
+        secrets_file = Path("secrets.json")
+        if secrets_file.exists():
+            try:
+                with open(secrets_file, 'r') as f:
+                    secrets = json.load(f)
+                    if provider == 'ollama':
+                        return secrets.get('ollama_api_key')
+                    elif provider == 'lm_studio':
+                        return secrets.get('lm_studio_api_key')
+            except:
+                pass
+        return None
+
     def _load_system_prompt(self) -> str:
         """Load system prompt from file or use default"""
         prompt_file = Path("system_prompt.txt")
         if prompt_file.exists():
             with open(prompt_file, 'r') as f:
                 return f.read()
-        
+
         # Default prompt with thinking instructions
         return """⚡ CRITICAL: YOU ARE RUNNING INSIDE A PYTHON AGENT WRAPPER ⚡
 
@@ -134,77 +196,139 @@ EXAMPLE WRONG RESPONSE:
 "As a text-based AI, I cannot access files..." ← NEVER say this!
 
 You help build practical software solutions with working, executable code."""
-    
+
+    def _get_api_endpoint(self) -> str:
+        """Get the correct API endpoint based on provider"""
+        # Both Ollama cloud and LM Studio support OpenAI-compatible API
+        # Using /v1/chat/completions for maximum compatibility
+        endpoint = f"{self.config.api_url}/chat/completions"
+        self.logger.debug(f"Generated endpoint: {endpoint}")
+        return endpoint
+
     def _stream_response(self, messages: List[Dict[str, str]]) -> Generator[str, None, None]:
-        """Stream response from LM Studio API"""
+        """Stream response from API (LM Studio or Ollama)"""
         self.response_start_time = time.time()
         self.token_count = 0
-        
+
+        # Prepare headers
+        headers = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+
+        endpoint = self._get_api_endpoint()
+        request_payload = {
+            "model": self.config.model_name,
+            "messages": messages,
+            "temperature": self.config.temperature,
+            "max_tokens": self.config.max_tokens,
+            "stream": True
+        }
+
+        self.logger.info(f"Making streaming API request to: {endpoint}")
+        self.logger.debug(f"Request payload: {json.dumps(request_payload, indent=2)}")
+        self.logger.debug(f"Headers: {{'Content-Type': 'application/json', 'Authorization': 'Bearer ***'}}")
+
         try:
             response = requests.post(
-                f"{self.config.lm_studio_url}/chat/completions",
-                json={
-                    "model": self.config.model_name,
-                    "messages": messages,
-                    "temperature": self.config.temperature,
-                    "max_tokens": self.config.max_tokens,
-                    "stream": True
-                },
+                endpoint,
+                json=request_payload,
+                headers=headers,
                 stream=True,
                 timeout=60
             )
+
+            self.logger.info(f"Response status code: {response.status_code}")
             response.raise_for_status()
             
             for line in response.iter_lines():
                 if line:
                     # Parse SSE format
                     line_str = line.decode('utf-8')
+                    self.logger.debug(f"Received line: {line_str[:200]}")  # Log first 200 chars
+
                     if line_str.startswith('data: '):
                         data_str = line_str[6:]  # Remove 'data: ' prefix
-                        
+
                         if data_str == '[DONE]':
+                            self.logger.debug("Received [DONE] signal")
                             break
-                        
+
                         try:
                             data = json.loads(data_str)
+                            self.logger.debug(f"Parsed JSON: {json.dumps(data, indent=2)[:500]}")
+
                             if 'choices' in data and len(data['choices']) > 0:
                                 delta = data['choices'][0].get('delta', {})
                                 if 'content' in delta:
                                     content = delta['content']
                                     self.token_count += 1
                                     yield content
-                        except json.JSONDecodeError:
+                            else:
+                                self.logger.warning(f"No 'choices' in response data: {data}")
+                        except json.JSONDecodeError as e:
+                            self.logger.error(f"JSON decode error: {e} for data: {data_str[:200]}")
                             continue
-                            
+
+            self.logger.info(f"Streaming complete. Total tokens: {self.token_count}")
+
         except requests.exceptions.ConnectionError as e:
+            self.logger.error(f"Connection error: {e}")
             raise ConnectionError(
-                f"Cannot connect to LM Studio at {self.config.lm_studio_url}. "
+                f"Cannot connect to {self.config.provider} at {self.config.api_url}. "
                 f"Error: {str(e)}\n"
-                "Please ensure LM Studio is running with the server enabled."
+                f"Please ensure {self.config.provider} is running and accessible."
             )
+        except requests.exceptions.HTTPError as e:
+            self.logger.error(f"HTTP error: {e}")
+            self.logger.error(f"Response body: {response.text[:1000]}")
+            raise Exception(f"HTTP error {response.status_code}: {response.text[:500]}")
         except Exception as e:
+            self.logger.error(f"Unexpected error in streaming: {e}", exc_info=True)
             raise Exception(f"Streaming failed: {str(e)}")
     
     def _make_api_request_no_stream(self, messages: List[Dict[str, str]]) -> str:
-        """Make non-streaming request to LM Studio API"""
+        """Make non-streaming request to API (LM Studio or Ollama)"""
+        # Prepare headers
+        headers = {"Content-Type": "application/json"}
+        if self.config.api_key:
+            headers["Authorization"] = f"Bearer {self.config.api_key}"
+
+        endpoint = self._get_api_endpoint()
+        request_payload = {
+            "model": self.config.model_name,
+            "messages": messages,
+            "temperature": self.config.temperature,
+            "max_tokens": self.config.max_tokens,
+            "stream": False
+        }
+
+        self.logger.info(f"Making non-streaming API request to: {endpoint}")
+        self.logger.debug(f"Request payload: {json.dumps(request_payload, indent=2)}")
+
         try:
             response = requests.post(
-                f"{self.config.lm_studio_url}/chat/completions",
-                json={
-                    "model": self.config.model_name,
-                    "messages": messages,
-                    "temperature": self.config.temperature,
-                    "max_tokens": self.config.max_tokens,
-                    "stream": False
-                },
+                endpoint,
+                json=request_payload,
+                headers=headers,
                 timeout=60
             )
+
+            self.logger.info(f"Response status code: {response.status_code}")
             response.raise_for_status()
-            
+
             result = response.json()
-            return result['choices'][0]['message']['content']
-            
+            self.logger.debug(f"Response JSON: {json.dumps(result, indent=2)[:1000]}")
+
+            content = result['choices'][0]['message']['content']
+            self.logger.info(f"Successfully received response ({len(content)} chars)")
+            return content
+
+        except requests.exceptions.HTTPError as e:
+            self.logger.error(f"HTTP error: {e}")
+            self.logger.error(f"Response body: {response.text[:1000]}")
+            raise Exception(f"HTTP error {response.status_code}: {response.text[:500]}")
         except Exception as e:
+            self.logger.error(f"API request failed: {e}", exc_info=True)
             raise Exception(f"API request failed: {str(e)}")
     
     def _display_thinking(self, text: str, is_thinking: bool = False):
@@ -712,8 +836,8 @@ You help build practical software solutions with working, executable code."""
 def main():
     """Interactive CLI for the streaming agent"""
     print("=" * 60)
-    print("Qwen2.5-Coder Agent via LM Studio (Streaming)")
-    print("AI Coding Assistant - POC Development")
+    print("AI Coding Agent (Streaming)")
+    print("Supports: LM Studio & Ollama")
     print("=" * 60)
     print("\nCommands:")
     print("  /help        - Show this help")
@@ -768,8 +892,10 @@ def main():
                     print("\033[92m✓ Conversation reset.\033[0m")
                 elif command == 'config':
                     print(f"\nConfiguration:")
-                    print(f"  URL: {agent.config.lm_studio_url}")
+                    print(f"  Provider: {agent.config.provider}")
+                    print(f"  URL: {agent.config.api_url}")
                     print(f"  Model: {agent.config.model_name}")
+                    print(f"  API Key: {'Set' if agent.config.api_key else 'Not set'}")
                     print(f"  Temperature: {agent.config.temperature}")
                     print(f"  Max tokens: {agent.config.max_tokens}")
                     print(f"  Streaming: {agent.config.stream}")

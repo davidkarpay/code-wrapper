@@ -1,0 +1,189 @@
+{
+  "version": "2.0",
+  "multi_agent_mode": true,
+  "description": "Multi-agent configuration supporting main and sub-agents",
+
+  "agent_profiles": {
+    "main_agent": {
+      "provider": "ollama",
+      "url": "https://ollama.com/v1",
+      "model": "gpt-oss:120b-cloud",
+      "api_key": "YOUR_API_KEY_HERE",
+      "role": "main",
+      "temperature": 0.7,
+      "max_tokens": 4096,
+      "stream": true,
+      "show_token_count": true,
+      "show_thinking": true,
+      "system_prompt_file": "system_prompt.txt",
+      "description": "Primary orchestration agent with largest model"
+    },
+
+    "reviewer_agent": {
+      "provider": "ollama",
+      "url": "https://ollama.com/v1",
+      "model": "gpt-oss:20b-cloud",
+      "api_key": "YOUR_API_KEY_HERE",
+      "role": "reviewer",
+      "temperature": 0.3,
+      "max_tokens": 2048,
+      "stream": true,
+      "show_token_count": true,
+      "show_thinking": false,
+      "system_prompt_file": "prompts/reviewer_prompt.txt",
+      "description": "Code review and validation agent"
+    },
+
+    "researcher_agent": {
+      "provider": "ollama",
+      "url": "https://ollama.com/v1",
+      "model": "gpt-oss:20b-cloud",
+      "api_key": "YOUR_API_KEY_HERE",
+      "role": "researcher",
+      "temperature": 0.5,
+      "max_tokens": 2048,
+      "stream": true,
+      "show_token_count": false,
+      "show_thinking": false,
+      "system_prompt_file": "prompts/researcher_prompt.txt",
+      "description": "Research and fact-finding agent"
+    },
+
+    "implementer_agent": {
+      "provider": "ollama",
+      "url": "https://ollama.com/v1",
+      "model": "gpt-oss:20b-cloud",
+      "api_key": "YOUR_API_KEY_HERE",
+      "role": "implementer",
+      "temperature": 0.6,
+      "max_tokens": 3072,
+      "stream": true,
+      "show_token_count": true,
+      "show_thinking": false,
+      "system_prompt_file": "prompts/implementer_prompt.txt",
+      "description": "Code implementation agent"
+    },
+
+    "tester_agent": {
+      "provider": "ollama",
+      "url": "https://ollama.com/v1",
+      "model": "gpt-oss:20b-cloud",
+      "api_key": "YOUR_API_KEY_HERE",
+      "role": "tester",
+      "temperature": 0.4,
+      "max_tokens": 2048,
+      "stream": true,
+      "show_token_count": false,
+      "show_thinking": false,
+      "system_prompt_file": "prompts/tester_prompt.txt",
+      "description": "Testing and validation agent"
+    },
+
+    "optimizer_agent": {
+      "provider": "ollama",
+      "url": "https://ollama.com/v1",
+      "model": "gpt-oss:20b-cloud",
+      "api_key": "YOUR_API_KEY_HERE",
+      "role": "optimizer",
+      "temperature": 0.5,
+      "max_tokens": 2048,
+      "stream": true,
+      "show_token_count": false,
+      "show_thinking": false,
+      "system_prompt_file": "prompts/optimizer_prompt.txt",
+      "description": "Code optimization agent"
+    },
+
+    "local_backup_agent": {
+      "provider": "lm_studio",
+      "url": "http://127.0.0.1:1234/v1",
+      "model": "qwen2.5-coder-1.5b-instruct",
+      "api_key": null,
+      "role": "general",
+      "temperature": 0.7,
+      "max_tokens": 2048,
+      "stream": true,
+      "show_token_count": true,
+      "show_thinking": false,
+      "system_prompt_file": "system_prompt.txt",
+      "description": "Local fallback agent using LM Studio"
+    }
+  },
+
+  "multi_agent_settings": {
+    "enable_auto_spawning": true,
+    "max_concurrent_agents": 4,
+    "default_main_profile": "main_agent",
+    "default_sub_agent_profile": "researcher_agent",
+    "enable_summaries": true,
+    "summary_to_main_agent": true,
+    "sub_agent_timeout_seconds": 300,
+    "enable_inter_agent_communication": true
+  },
+
+  "spawning_rules": {
+    "keywords": {
+      "review": "reviewer_agent",
+      "test": "tester_agent",
+      "optimize": "optimizer_agent",
+      "research": "researcher_agent",
+      "implement": "implementer_agent",
+      "find": "researcher_agent",
+      "analyze": "researcher_agent",
+      "validate": "reviewer_agent",
+      "check": "reviewer_agent"
+    },
+    "auto_spawn_on_keywords": true,
+    "require_confirmation": false
+  },
+
+  "agent_settings": {
+    "workspace_dir": "./agent_workspace",
+    "enable_code_execution": true,
+    "safe_mode": true,
+    "timeout_seconds": 60,
+    "timeout_overrides": {
+      "code_execution": 180,
+      "file_write": 120,
+      "analysis": 300
+    }
+  },
+
+  "display_settings": {
+    "enable_colors": true,
+    "show_agent_headers": true,
+    "show_agent_separators": true,
+    "show_timestamps": false,
+    "show_statistics": true,
+    "compact_mode": false,
+    "show_system_prompts": false
+  },
+
+  "file_operations": {
+    "plan_mode": true,
+    "allow_file_write": true,
+    "allow_file_edit": true,
+    "allow_file_read": true,
+    "allowed_directories": [
+      "./agent_workspace",
+      "./projects",
+      "./data",
+      "./output",
+      "./research",
+      "./templates"
+    ],
+    "max_file_size_kb": 500,
+    "backup_before_edit": true,
+    "overwrite_warning": true,
+    "enable_file_locking": true
+  },
+
+  "logging": {
+    "enabled": true,
+    "log_level": "info",
+    "log_dir": "./logs",
+    "max_log_files": 10,
+    "rotate_logs": true,
+    "per_agent_logs": true
+  }
+}

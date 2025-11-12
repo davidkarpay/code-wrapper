@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Documentation - Test Plan</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="nav">
+        <a href="index.html" class="nav-logo">
+            ✅ Test Documentation
+        </a>
+        <ul class="nav-links">
+            <li><a href="index.html" class="nav-link">Dashboard</a></li>
+            <li><a href="test-results.html" class="nav-link">Test Results</a></li>
+            <li><a href="recommendations.html" class="nav-link">Recommendations</a></li>
+            <li><a href="test-plan.html" class="nav-link active">Test Plan</a></li>
+            <li><a href="summary.html" class="nav-link">Executive Summary</a></li>
+        </ul>
+        <button id="search-trigger" class="search-trigger">
+            🔍 Search (⌘K)
+        </button>
+    </nav>
+
+    <!-- Layout -->
+    <div class="layout">
+        <!-- Sidebar TOC -->
+        <aside class="sidebar">
+            <div class="toc-title">On This Page</div>
+            <ul id="toc-list" class="toc-list"></ul>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <h1>File Operations Testing Plan</h1>
+<h2 id="overview">Overview</h2>
+<p>Comprehensive testing of the coding_agent_streaming.py file operation capabilities including READ, WRITE, EDIT operations and all security controls.</p>
+<p><strong>Note:</strong> DELETE operation does not exist in this agent.</p>
+<h2 id="test-environment-setup">Test Environment Setup</h2>
+<h3>Test Files Created</h3>
+<ul>
+<li><code>./test_workspace/test_read.txt</code> (185 bytes) - For READ operation testing</li>
+<ul>
+<li><code>./test_workspace/test_edit.txt</code> (238 bytes) - For EDIT operation testing</li>
+<ul>
+<li><code>./test_workspace/test_read_large.txt</code> (600KB) - For size limit testing</li>
+</ul>
+<h3>Current Configuration</h3>
+<ul>
+<li>Provider: ollama</li>
+<ul>
+<li>Model: gpt-oss:120b-cloud</li>
+<ul>
+<li>Plan mode: True</li>
+<ul>
+<li>File operations permissions: All enabled (read/write/edit)</li>
+<ul>
+<li>Max file size: 500KB</li>
+<ul>
+<li>Allowed directories: ".", "./agent_workspace", "./projects", "./data", "./output", "./research", "./templates", "./test_workspace"</li>
+</ul>
+<hr>
+<h2 id="test-suite">Test Suite</h2>
+<h3>Phase 1: CLI Commands Testing</h3>
+<p>Test the direct CLI commands before testing LLM-driven operations.</p>
+<h4>Test 1.1: /ls Command</h4>
+<pre><code>
+You: /ls test_workspace
+Expected: Shows list of 3 test files with sizes
+</code></pre>
+<h4>Test 1.2: /read Command (Direct)</h4>
+<pre><code>
+You: /read test_workspace/test_read.txt
+Expected: Displays file contents (185 bytes)
+</code></pre>
+<h4>Test 1.3: /read Large File</h4>
+<pre><code>
+You: /read test_workspace/test_read_large.txt
+Expected: ERROR - File too large (600KB > 500KB limit)
+</code></pre>
+<h4>Test 1.4: /config Command</h4>
+<pre><code>
+You: /config
+Expected: Shows current configuration including permissions
+</code></pre>
+<hr>
+<h3>Phase 2: FILE_READ Operations (LLM-Driven)</h3>
+<h4>Test 2.1: Read Existing Small File</h4>
+<pre><code>
+You: Please read the file test_workspace/test_read.txt
+Expected: Agent uses [FILE_READ] tag, successfully reads and displays content
+</code></pre>
+<h4>Test 2.2: Read Non-Existent File</h4>
+<pre><code>
+You: Please read the file test_workspace/does_not_exist.txt
+Expected: Agent uses [FILE_READ] tag, returns error "File does not exist"
+</code></pre>
+<h4>Test 2.3: Read Large File (Size Limit)</h4>
+<pre><code>
+You: Please read the file test_workspace/test_read_large.txt
+Expected: Agent uses [FILE_READ] tag, returns error "File too large: 600.0KB (max: 500KB)"
+</code></pre>
+<h4>Test 2.4: Read File Outside Allowed Directories</h4>
+<p><em>First, toggle permissions to test:</em></p>
+<pre><code>
+You: /read /etc/passwd
+Expected: ERROR - "Path /etc/passwd is not in allowed directories"
+</code></pre>
+<hr>
+<h3>Phase 3: FILE_WRITE Operations (LLM-Driven)</h3>
+<h4>Test 3.1: Create New File</h4>
+<pre><code>
+You: Please create a new file called test_workspace/test_write_new.txt with content "Hello, this is a test file created by the agent."
+
+Expected:
+- Agent proposes [PLAN] (if plan_mode=true)
+- User approves
+- Agent uses [FILE_WRITE] tag
+- File created successfully
+</code></pre>
+<h4>Test 3.2: Overwrite Existing File (With Warning)</h4>
+<pre><code>
+You: Please write to the file test_workspace/test_read.txt and replace its content with "OVERWRITTEN CONTENT"
+
+Expected:
+- Agent proposes [PLAN]
+- User approves
+- Agent uses [FILE_WRITE] tag
+- Overwrite warning prompt appears
+- User confirms
+- File overwritten
+</code></pre>
+<h4>Test 3.3: Write File with Content >500KB</h4>
+<pre><code>
+You: Please create a file test_workspace/test_write_large.txt containing 600KB of the letter 'A'
+
+Expected:
+- Agent proposes [PLAN]
+- User approves
+- Agent uses [FILE_WRITE] tag
+- ERROR: "Content too large: 600.0KB (max: 500KB)"
+</code></pre>
+<h4>Test 3.4: Toggle Write Permission Off</h4>
+<pre><code>
+You: /allow_write
+(Toggles write permission off)
+
+You: Please create a file test_workspace/test_permission.txt with content "Test"
+
+Expected:
+- Agent proposes [PLAN]
+- User approves
+- Agent uses [FILE_WRITE] tag
+- ERROR: "File writing is disabled in configuration"
+
+Then toggle back on:
+You: /allow_write
+</code></pre>
+<hr>
+<h3>Phase 4: FILE_EDIT Operations (LLM-Driven)</h3>
+<h4>Test 4.1: Edit File with Find/Replace</h4>
+<pre><code>
+You: Please edit the file test_workspace/test_edit.txt and replace "OLD_VALUE" with "UPDATED_VALUE"
+
+Expected:
+- Agent proposes [PLAN]
+- User approves
+- Agent uses [FILE_EDIT] tag
+- Backup file created: test_edit.txt.backup
+- Text successfully replaced
+</code></pre>
+<h4>Test 4.2: Edit with Non-Existent Find Text</h4>
+<pre><code>
+You: Please edit the file test_workspace/test_edit.txt and replace "NONEXISTENT_TEXT" with "SOMETHING"
+
+Expected:
+- Agent proposes [PLAN]
+- User approves
+- Agent uses [FILE_EDIT] tag
+- ERROR: "Text to replace not found in file"
+</code></pre>
+<h4>Test 4.3: Verify Backup File Created</h4>
+<pre><code>
+You: /ls test_workspace
+
+Expected: Should show test_edit.txt.backup file
+</code></pre>
+<h4>Test 4.4: Read Backup File</h4>
+<pre><code>
+You: /read test_workspace/test_edit.txt.backup
+
+Expected: Shows original content before edit
+</code></pre>
+<hr>
+<h3>Phase 5: Plan Mode Workflow Testing</h3>
+<h4>Test 5.1: Plan Approval</h4>
+<pre><code>
+You: Please create three files: test1.txt, test2.txt, test3.txt in test_workspace
+
+Expected:
+- Agent generates [PLAN] tag with description
+- Plan approval prompt appears
+- User types: yes
+- Agent executes [FILE_WRITE] operations for all 3 files
+- All files created successfully
+</code></pre>
+<h4>Test 5.2: Plan Rejection</h4>
+<pre><code>
+You: Please delete all files in test_workspace (Note: should fail as delete not supported)
+
+Expected:
+- Agent proposes [PLAN] (or explains delete not available)
+- User types: no
+- Plan rejected, no operations executed
+</code></pre>
+<h4>Test 5.3: Plan Modification</h4>
+<pre><code>
+You: Please create a file test_workspace/test_modify.txt with content "Original"
+
+Expected:
+- Agent proposes [PLAN]
+- User types: modify
+- Prompt: "Please describe the changes you want:"
+- User types: "Change the content to 'Modified Content'"
+- Agent re-proposes modified plan
+- User approves
+- File created with modified content
+</code></pre>
+<h4>Test 5.4: Toggle Plan Mode Off</h4>
+<pre><code>
+You: /plan
+(Toggles plan mode off)
+
+You: Please create test_workspace/test_no_plan.txt with content "No plan needed"
+
+Expected:
+- No plan approval prompt
+- Agent directly executes [FILE_WRITE]
+- File created immediately
+
+Then toggle back on:
+You: /plan
+</code></pre>
+<hr>
+<h3>Phase 6: Security Controls Testing</h3>
+<h4>Test 6.1: Directory Restrictions</h4>
+<pre><code>
+You: Please read the file /tmp/test.txt
+
+Expected: ERROR - "Path /tmp/test.txt is not in allowed directories"
+</code></pre>
+<h4>Test 6.2: Path Traversal Attack</h4>
+<pre><code>
+You: Please read the file ../../../etc/passwd
+
+Expected: ERROR - Path validation should block this
+</code></pre>
+<h4>Test 6.3: Symlink Handling</h4>
+<p><em>Create a symlink first via CLI:</em></p>
+<pre><code>
+ln -s /etc/passwd test_workspace/link_to_passwd
+</code></pre>
+<p>Then test:</p>
+<pre><code>
+You: Please read test_workspace/link_to_passwd
+
+Expected: ERROR - Resolved path should be outside allowed directories
+</code></pre>
+<h4>Test 6.4: Size Limit Boundary (Exactly 500KB)</h4>
+<p><em>Create exactly 500KB file:</em></p>
+<pre><code>
+python3 -c "with open('test_workspace/test_500kb.txt', 'w') as f: f.write('X' * (500 * 1024))"
+</code></pre>
+<p>Then test:</p>
+<pre><code>
+You: Please read test_workspace/test_500kb.txt
+
+Expected: SUCCESS (exactly at limit) or ERROR depending on >= vs > check
+</code></pre>
+<hr>
+<h3>Phase 7: Error Handling & Edge Cases</h3>
+<h4>Test 7.1: Multiple Operations in Sequence</h4>
+<pre><code>
+You: Please:
+1. Read test_workspace/test_read.txt
+2. Create test_workspace/multi_test.txt with content "Step 2"
+3. Edit test_workspace/multi_test.txt replacing "Step 2" with "Step 3"
+
+Expected:
+- Agent proposes [PLAN] with all operations
+- User approves
+- All operations execute in sequence
+- Success count: 3, Failure count: 0
+</code></pre>
+<h4>Test 7.2: Partial Failure Handling</h4>
+<pre><code>
+You: Please:
+1. Read test_workspace/test_read.txt (should succeed)
+2. Read test_workspace/does_not_exist.txt (should fail)
+3. Create test_workspace/final_test.txt with content "Done" (should succeed)
+
+Expected:
+- Agent proposes [PLAN]
+- User approves
+- Operation 1: SUCCESS
+- Operation 2: FAILURE (file not found)
+- Operation 3: SUCCESS
+- Success count: 2, Failure count: 1
+</code></pre>
+<h4>Test 7.3: File with Unicode Characters</h4>
+<pre><code>
+You: Please create test_workspace/unicode_test.txt with content "Hello 世界 🌍 Émojis and Unicode!"
+
+Expected:
+- Agent proposes [PLAN]
+- User approves
+- File created with UTF-8 encoding
+- Can be read back correctly
+</code></pre>
+<hr>
+<h3>Phase 8: Verification & Cleanup</h3>
+<h4>Test 8.1: Verify All Created Files</h4>
+<pre><code>
+You: /ls test_workspace
+
+Expected: Shows all files created during testing
+</code></pre>
+<h4>Test 8.2: Check Debug Log</h4>
+<pre><code>
+tail -100 agent_debug.log
+</code></pre>
+<p>Expected: All file operations logged with details</p>
+<h4>Test 8.3: Verify Backup Files</h4>
+<pre><code>
+You: /ls test_workspace | grep backup
+
+Expected: Shows .backup files for edited files
+</code></pre>
+<hr>
+<h2 id="test-execution-instructions">Test Execution Instructions</h2>
+<ol>
+<li><strong>Start the agent:</strong></li>
+<pre><code>
+   python coding_agent_streaming.py
+</code></pre>
+<ol>
+<li><strong>Run each test in order</strong>, recording results in <code>test_results.md</code></li>
+</ul>
+<ol>
+<li><strong>For each test, note:</strong></li>
+<p>   - Test number and description</p>
+<p>   - Commands/prompts used</p>
+<p>   - Expected outcome</p>
+<p>   - Actual outcome</p>
+<p>   - Pass/Fail status</p>
+<p>   - Any errors or unexpected behavior</p>
+<p>   - Relevant log excerpts</p>
+<ol>
+<li><strong>Check logs after each significant test:</strong></li>
+<pre><code>
+   tail -50 agent_debug.log
+</code></pre>
+<ol>
+<li><strong>Document any deviations</strong> from expected behavior</li>
+</ul>
+<hr>
+<h2 id="success-criteria">Success Criteria</h2>
+<ul>
+<li>✅ All READ operations work within security constraints</li>
+<ul>
+<li>✅ All WRITE operations work with proper warnings</li>
+<ul>
+<li>✅ All EDIT operations work with backup creation</li>
+<ul>
+<li>✅ Directory restrictions properly enforced</li>
+<ul>
+<li>✅ Size limits properly enforced</li>
+<ul>
+<li>✅ Permission toggles work correctly</li>
+<ul>
+<li>✅ Plan mode workflow functions properly</li>
+<ul>
+<li>✅ Error messages are clear and helpful</li>
+<ul>
+<li>✅ Operations log correctly to agent_debug.log</li>
+<ul>
+<li>✅ No operations succeed when they should fail</li>
+<ul>
+<li>✅ No crashes or unhandled exceptions</li>
+</ul>
+<hr>
+<h2 id="known-limitations">Known Limitations</h2>
+<ol>
+<li><strong>No DELETE operation</strong> - Cannot test file deletion</li>
+<ol>
+<li><strong>No RENAME operation</strong> - Cannot test file renaming</li>
+<ol>
+<li><strong>No COPY operation</strong> - Cannot test file copying</li>
+<ol>
+<li><strong>CLI /read command</strong> bypasses plan mode - Direct read doesn't require approval</li>
+</ul>
+<hr>
+<h2 id="next-steps">Next Steps</h2>
+<p>After completing all tests, compile results into <code>test_results.md</code> with:</p>
+<ul>
+<li>Summary of pass/fail rates</li>
+<ul>
+<li>List of any bugs found</li>
+<ul>
+<li>Recommendations for improvements</li>
+<ul>
+<li>Log file excerpts for failed tests</li>
+</ul>
+        </main>
+    </div>
+
+    <!-- Search Modal -->
+    <div id="search-modal" class="search-modal">
+        <div class="search-container">
+            <input type="text" id="search-input" class="search-input" placeholder="Search documentation..." />
+            <div id="search-results" class="search-results">
+                <div class="search-result text-muted">Start typing to search...</div>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/main.js"></script>
+</body>
+</html>

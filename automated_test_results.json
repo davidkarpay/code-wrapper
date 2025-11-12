@@ -1,0 +1,151 @@
+{
+  "timestamp": "2025-11-11T23:25:05.765557",
+  "summary": {
+    "total": 20,
+    "passed": 17,
+    "failed": 3,
+    "skipped": 0
+  },
+  "tests": [
+    {
+      "test": "2.1 Read Small File",
+      "status": "PASS",
+      "expected": "Should succeed and return file content",
+      "actual": "Success: True, Content length: 185",
+      "notes": ""
+    },
+    {
+      "test": "2.2 Read Non-Existent",
+      "status": "PASS",
+      "expected": "Should fail with 'File does not exist'",
+      "actual": "Success: False, Error: File does not exist: /Users/davidluciankarpay/Library/Mobile Documents/com~apple~CloudDocs/Claude/Code_Wrapper/test_workspace/does_not_exist.txt",
+      "notes": ""
+    },
+    {
+      "test": "2.3 Read Large File",
+      "status": "PASS",
+      "expected": "Should fail with 'File too large'",
+      "actual": "Success: False, Error: File too large: 600.0KB (max: 500KB)",
+      "notes": ""
+    },
+    {
+      "test": "2.4 Directory Restriction",
+      "status": "PASS",
+      "expected": "Should fail with 'not in allowed directories'",
+      "actual": "Success: False, Error: Path /private/etc/passwd is not in allowed directories",
+      "notes": ""
+    },
+    {
+      "test": "3.1 Create New File",
+      "status": "FAIL",
+      "expected": "Should create file successfully",
+      "actual": "Success: False, Message: Error writing file: EOF when reading a line",
+      "notes": ""
+    },
+    {
+      "test": "3.2 Write Size Limit",
+      "status": "PASS",
+      "expected": "Should fail with 'Content too large'",
+      "actual": "Success: False, Message: Content too large: 600.0KB (max: 500KB)",
+      "notes": ""
+    },
+    {
+      "test": "3.3 Write Directory Restriction",
+      "status": "PASS",
+      "expected": "Should fail with 'not in allowed directories'",
+      "actual": "Success: False, Message: Path /private/tmp/test_unauthorized.txt is not in allowed directories",
+      "notes": ""
+    },
+    {
+      "test": "3.4 Write Permission",
+      "status": "PASS",
+      "expected": "Should fail with 'writing is disabled'",
+      "actual": "Success: False, Message: File writing is disabled in configuration",
+      "notes": ""
+    },
+    {
+      "test": "4.1 Edit Find/Replace",
+      "status": "FAIL",
+      "expected": "Should replace text and create backup",
+      "actual": "Success: False, Message: Text to replace not found in file",
+      "notes": ""
+    },
+    {
+      "test": "4.2 Edit Not Found",
+      "status": "PASS",
+      "expected": "Should fail with 'not found'",
+      "actual": "Success: False, Message: Text to replace not found in file",
+      "notes": ""
+    },
+    {
+      "test": "4.3 Edit Directory Restriction",
+      "status": "PASS",
+      "expected": "Should fail with 'not in allowed directories'",
+      "actual": "Success: False, Message: Path /private/etc/passwd is not in allowed directories",
+      "notes": ""
+    },
+    {
+      "test": "4.4 Edit Permission",
+      "status": "PASS",
+      "expected": "Should fail with 'editing is disabled'",
+      "actual": "Success: False, Message: File editing is disabled in configuration",
+      "notes": ""
+    },
+    {
+      "test": "6.1 Path Traversal",
+      "status": "PASS",
+      "expected": "Should block path traversal",
+      "actual": "Success: False, Message: Path /Users/davidluciankarpay/Library/Mobile Documents/etc/passwd is not in allowed directories",
+      "notes": ""
+    },
+    {
+      "test": "6.2 Absolute Path",
+      "status": "PASS",
+      "expected": "Should reject absolute path outside allowed",
+      "actual": "Success: False",
+      "notes": ""
+    },
+    {
+      "test": "6.3 Size Boundary",
+      "status": "FAIL",
+      "expected": "At boundary: should succeed or fail consistently",
+      "actual": "Success: False, Message: Error writing file: EOF when reading a line (Boundary behavior documented)",
+      "notes": ""
+    },
+    {
+      "test": "Path Relative",
+      "status": "PASS",
+      "expected": "Should resolve relative path correctly",
+      "actual": "Relative path accepted",
+      "notes": ""
+    },
+    {
+      "test": "Path Normalization",
+      "status": "PASS",
+      "expected": "Should normalize path correctly",
+      "actual": "Path normalized",
+      "notes": ""
+    },
+    {
+      "test": "8.1 Test Files Exist",
+      "status": "PASS",
+      "expected": "All test files should exist",
+      "actual": "All found",
+      "notes": ""
+    },
+    {
+      "test": "8.2 Backup Created",
+      "status": "PASS",
+      "expected": "Backup file should exist",
+      "actual": "Backup found",
+      "notes": ""
+    },
+    {
+      "test": "8.3 List Files",
+      "status": "PASS",
+      "expected": "Should list files",
+      "actual": "Found 8 files",
+      "notes": ""
+    }
+  ]
+}

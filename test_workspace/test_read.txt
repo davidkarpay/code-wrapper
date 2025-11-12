@@ -1,0 +1,5 @@
+This is a test file for READ operations.
+It contains multiple lines of text.
+Line 3: Testing file reading functionality.
+Line 4: File size is approximately 150 bytes.
+End of test file.

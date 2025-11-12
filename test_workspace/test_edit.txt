@@ -1,0 +1,10 @@
+ORIGINAL TEXT: This file is for testing EDIT operations.
+
+Find this text: UPDATED_VALUE
+Replace with: NEW_VALUE
+
+This line should remain unchanged.
+Another line for testing.
+
+Find this pattern: PATTERN_A
+This will be replaced during testing.

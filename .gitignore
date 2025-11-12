@@ -1,0 +1,28 @@
+# Secrets and API keys
+secrets.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Agent workspace
+agent_workspace/
+
+# Backups
+*.backup
+
+# OS
+.DS_Store

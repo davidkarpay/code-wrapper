@@ -1,0 +1,11 @@
+# Multi-Agent System Dependencies
+
+# Async HTTP client for concurrent API requests
+aiohttp>=3.9.0
+
+# Existing dependencies
+requests>=2.31.0
+
+# Optional: For better async performance
+aiodns>=3.1.0
+cchardet>=2.1.7

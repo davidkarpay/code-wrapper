@@ -1,24 +1,16 @@
 {
-  "version": "1.1",
-  "prompt_format": "ChatML",
-  "provider": "lm_studio",
+  "provider": "ollama",
 
   "lm_studio": {
     "url": "http://127.0.0.1:1234/v1",
     "model": "TheBloke/TinyLlama-1.1B-Chat-v1.0-GGUF",
-    "api_key": null,
-    "default_endpoint": "/chat/completions",
-    "retry_attempts": 3,
-    "timeout_seconds": 60
+    "api_key": null
   },
 
   "ollama": {
     "url": "https://ollama.com/v1",
     "model": "gpt-oss:120b-cloud",
-    "api_key": "YOUR_API_KEY_HERE",
-    "default_endpoint": "/chat/completions",
-    "retry_attempts": 3,
-    "timeout_seconds": 120
+    "api_key": "9db247ffbfab4155bd7a5fe5381acd80.i1i-OptrdhfMJBatb4YmpbU9"
   },
 
   "agent_settings": {
@@ -27,22 +19,10 @@
     "workspace_dir": "./agent_workspace",
     "enable_code_execution": true,
     "safe_mode": true,
+    "timeout_seconds": 60,
     "stream": true,
     "show_token_count": true,
-    "show_thinking": true,
-    "timeout_seconds": 60,
-    "timeout_overrides": {
-      "code_execution": 180,
-      "file_write": 120,
-      "analysis": 300
-    }
-  },
-
-  "structured_output": {
-    "enabled": true,
-    "schema_file": "./schemas/code_output.json",
-    "validation_mode": "warn", 
-    "on_failure": "fallback_to_text"
+    "show_thinking": true
   },
 
   "display_settings": {
@@ -51,9 +31,7 @@
     "error_color": "red",
     "success_color": "green",
     "show_timestamps": false,
-    "show_statistics": true,
-    "compact_mode": false,
-    "show_system_prompts": false
+    "show_statistics": true
   },
 
   "project_workspace": {
@@ -61,17 +39,14 @@
     "data_dir": "./data",
     "research_dir": "./research",
     "templates_dir": "./templates",
-    "output_dir": "./output",
-    "logs_dir": "./logs"
+    "output_dir": "./output"
   },
 
   "prompts": {
     "use_coding_context": true,
     "include_tool_examples": true,
     "prompt_style": "thinking_first",
-    "encourage_step_by_step": true,
-    "system_message": "You are an advanced coding assistant capable of generating and explaining code using ChatML format.",
-    "default_language": "python"
+    "encourage_step_by_step": true
   },
 
   "file_operations": {
@@ -90,14 +65,5 @@
     "max_file_size_kb": 500,
     "backup_before_edit": true,
     "overwrite_warning": true
-  },
-
-  "logging": {
-    "enabled": true,
-    "log_level": "info",
-    "log_dir": "./logs",
-    "max_log_files": 10,
-    "rotate_logs": true
   }
 }
-
